@@ -1,0 +1,16 @@
+build
+Datum*
+Log*
+IOWarrior 
+*.eep
+*.elf
+*.hex
+*.lss
+*.lst
+*.map
+*.o
+*.sym
+*.xcodeproj
+.dep
+.txt
+_Reset
