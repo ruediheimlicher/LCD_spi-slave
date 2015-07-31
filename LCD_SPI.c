@@ -455,13 +455,15 @@ void main (void)
       if (spidata >=0)
       {
          OSZI_A_LO;
+         lcd_gotoxy(18,0);
+         lcd_putc(' ');
          
          lcd_gotoxy(19,0);
          lcd_putc('*');
          spi_rxdata = 0;
-         lcd_gotoxy(0,3);
+         lcd_gotoxy(0,1);
          lcd_puthex(spidata);
-
+         lcd_putc(' ');
          if (spidata == 0x00) // end
          {
             datastring[pos] = '\0';
@@ -615,10 +617,10 @@ void main (void)
       }
       else
       {
-         //lcd_gotoxy(0,1);
+         lcd_gotoxy(18,0);
          //lcd_puthex(0x00);
          //lcd_gotoxy(19,0);
-         //lcd_putc('-');
+         lcd_putc('-');
          
       }
 
