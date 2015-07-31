@@ -82,6 +82,9 @@ volatile uint8_t statusflag=0;
 
 volatile uint8_t spi_rxbuffer[8] = {};
 volatile uint8_t	spicount=0;
+volatile uint8_t	packetcount=0;
+volatile uint8_t	charcount=0;
+
 volatile uint8_t	ANZEIGE_LO_counter=0;
 
 int add(char c)
@@ -465,14 +468,14 @@ void main (void)
          if (spidata == 0x00) // end
          {
             datastring[pos] = '\0';
-            lcd_gotoxy(0,2);
+            lcd_gotoxy(12,2);
             lcd_putint(col);
             lcd_putc(' ');
             lcd_putint(line);
             //line = 1;
             //col = 2;
 
-            lcd_gotoxy(col,line);
+            lcd_gotoxy(10,1);
             lcd_puts(datastring);
             
           
@@ -480,10 +483,14 @@ void main (void)
          else if (spidata == 0x0D) // neues paket
          {
 //            datastring[pos] = '\0';
+            packetcount++;
             lcd_gotoxy(0,2);
-            lcd_putint(col);
-            lcd_putc(' ');
-            lcd_putint(line);
+            lcd_puthex(spidata);
+            lcd_putint(packetcount);
+            //lcd_putc(' ');
+            
+            //lcd_putc(' ');
+            //lcd_putint(line);
 //            lcd_gotoxy(col,line);
  //           lcd_puts(datastring);
             //lcd_putc('*');
@@ -491,6 +498,7 @@ void main (void)
             col=0;
             line=0;
             spistatus=0;
+            //charcount=0;
             spistatus = 1<<NEW_TASK;
             //lcd_clr_line(1);
          }
@@ -499,25 +507,33 @@ void main (void)
              //if (spistatus & (1<<NEW_TASK))
              {
                 cmd = spidata;
-                
+                lcd_gotoxy(0,0);
+                lcd_puthex(spidata);
                 switch (cmd)
                 {
-                   case CHAR_TASK: // put c
+                   case CHAR_TASK: // 0x01, put c
                    {
                       spistatus |= 1<<CHAR_TASK;
-                      par=0; // keine Parameter
+                      lcd_gotoxy(10,0);
+                      lcd_puthex(spistatus);
+                      
+                      par=2; // 2 char fuer hexzahl Parameter
                    }break;
                       
-                   case 0x02: // goto xy
+                   case GOTO_TASK: // 0x02, goto xy
                    {
                       spistatus |= 1<<GOTO_TASK;
-                      par=1; // goto-Daten
+                      lcd_gotoxy(12,0);
+                      lcd_puthex(spistatus);
+                      par=2; // goto-Daten
                       
                    } break;
                    
-                   case END_TASK:
+                   case 0x00:
                    {
                       spistatus |= 1<<END_TASK;
+                      lcd_gotoxy(14,0);
+                      lcd_puthex(spistatus);
                       
                    }break;
                       
@@ -526,22 +542,29 @@ void main (void)
                 }// switch
                 //spistatus &= ~(1<<NEW_TASK);
              }
-             //lcd_gotoxy(pos++,1);
-             //lcd_putc(spidata);
+             
+             
           }
           else if ((spidata >0x21) && (spidata < 0x5A)) // char
           {
              if (spistatus & (1<<CHAR_TASK))
              {
+                charcount++;
+                
+                lcd_gotoxy(13,0);
+                lcd_puthex(charcount);
+                lcd_gotoxy(pos,1);
+                lcd_puthex(spidata);
                 datastring[pos++] = (uint8_t)spidata;
                 spistatus &= ~(1<<CHAR_TASK);
                
              }
              else  if (spistatus & (1<<GOTO_TASK))
              {
+                // erster char
                 
                 lcd_gotoxy(0,3);
-                lcd_putint(spidata);
+                lcd_puthex(spidata);
                 lcd_putc(' ');
                 data = (uint8_t)spidata;
                 lcd_putint(data);
