@@ -456,37 +456,47 @@ void main (void)
       {
          OSZI_A_LO;
          
-         //lcd_gotoxy(19,0);
-         //lcd_putc('*');
+         lcd_gotoxy(19,0);
+         lcd_putc('*');
          spi_rxdata = 0;
+         lcd_gotoxy(0,3);
+         lcd_puthex(spidata);
+
          if (spidata == 0x00) // end
          {
             datastring[pos] = '\0';
-            //lcd_gotoxy(0,2);
-            //lcd_putint(col);
-            //lcd_putc(' ');
-            //lcd_putint(line);
+            lcd_gotoxy(0,2);
+            lcd_putint(col);
+            lcd_putc(' ');
+            lcd_putint(line);
+            //line = 1;
+            //col = 2;
+
             lcd_gotoxy(col,line);
             lcd_puts(datastring);
+            
           
          }
          else if (spidata == 0x0D) // neues paket
          {
 //            datastring[pos] = '\0';
-            //lcd_gotoxy(0,2);
-            //lcd_putint(col);
-            //lcd_putc(' ');
-            //lcd_putint(line);
+            lcd_gotoxy(0,2);
+            lcd_putint(col);
+            lcd_putc(' ');
+            lcd_putint(line);
 //            lcd_gotoxy(col,line);
  //           lcd_puts(datastring);
             //lcd_putc('*');
             pos=0; // pos im Datenpaket
+            col=0;
+            line=0;
+            spistatus=0;
             spistatus = 1<<NEW_TASK;
             //lcd_clr_line(1);
          }
           else if ((spidata < 0x21) ) // cmd
           {
-             if (spistatus & (1<<NEW_TASK))
+             //if (spistatus & (1<<NEW_TASK))
              {
                 cmd = spidata;
                 
@@ -525,15 +535,31 @@ void main (void)
              {
                 datastring[pos++] = (uint8_t)spidata;
                 spistatus &= ~(1<<CHAR_TASK);
+               
              }
              else  if (spistatus & (1<<GOTO_TASK))
              {
+                
+                lcd_gotoxy(0,3);
+                lcd_putint(spidata);
+                lcd_putc(' ');
                 data = (uint8_t)spidata;
+                lcd_putint(data);
+                //data = 0x21;
                 line = data & 0x07;   // 5 bit col, 3 bit line
                 col = (data & 0xF8)>>3;
+                
+                lcd_putc(' ');
+                lcd_putint(col);
+                lcd_putc(' ');
+                lcd_putint(line);
+
+                //line = 1;
+                //col = 6;
                 //lcd_gotoxy(col,line);
                 //lcd_gotoxy(10,1);
                 spistatus &= ~(1<<GOTO_TASK);
+                
              }
 
              
