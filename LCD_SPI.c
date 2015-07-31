@@ -33,6 +33,8 @@
 
 #define WAIT                  0
 
+#define SPI_DELAY             5
+
 #define CHECK                 1 // in ISR gesetzt, resetcount soll erhoeht werden
 
 
@@ -55,10 +57,13 @@ volatile char ring_data[RING_SIZE];
 
 volatile uint8_t cmd=0; // command
 volatile uint8_t par=0; // parameter
+volatile uint8_t col=0;
+volatile uint8_t line=0;
+
 volatile uint8_t data=0;
 volatile uint8_t datastring[20]={};
 
-volatile uint8_t spidata=0;
+volatile int16_t spidata=0;
 
 volatile uint8_t spistatus=0;
 
@@ -451,14 +456,29 @@ void main (void)
       {
          OSZI_A_LO;
          
-         
-         
          //lcd_gotoxy(19,0);
          //lcd_putc('*');
          spi_rxdata = 0;
-         if (spidata == 0x0D) // neues paket
+         if (spidata == 0x00) // end
          {
-            //lcd_gotoxy(1,1);
+            datastring[pos] = '\0';
+            //lcd_gotoxy(0,2);
+            //lcd_putint(col);
+            //lcd_putc(' ');
+            //lcd_putint(line);
+            lcd_gotoxy(col,line);
+            lcd_puts(datastring);
+          
+         }
+         else if (spidata == 0x0D) // neues paket
+         {
+//            datastring[pos] = '\0';
+            //lcd_gotoxy(0,2);
+            //lcd_putint(col);
+            //lcd_putc(' ');
+            //lcd_putint(line);
+//            lcd_gotoxy(col,line);
+ //           lcd_puts(datastring);
             //lcd_putc('*');
             pos=0; // pos im Datenpaket
             spistatus = 1<<NEW_TASK;
@@ -472,7 +492,6 @@ void main (void)
                 
                 switch (cmd)
                 {
-                      
                    case CHAR_TASK: // put c
                    {
                       spistatus |= 1<<CHAR_TASK;
@@ -484,18 +503,11 @@ void main (void)
                       spistatus |= 1<<GOTO_TASK;
                       par=1; // goto-Daten
                       
-                      if (spistatus & (1<<GOTO_TASK))
-                      {
-                         uint8_t line = data & 0x07;   // 5 bit col, 3 bit line
-                         uint8_t col = (data & 0xF8)>>3;
-                         //lcd_gotoxy(col,line);
-                         //lcd_gotoxy(10,1);
-                         spistatus &= ~(1<<GOTO_TASK);
-                      }
                    } break;
                    
-                   case 0x00:
+                   case END_TASK:
                    {
+                      spistatus |= 1<<END_TASK;
                       
                    }break;
                       
@@ -511,27 +523,24 @@ void main (void)
           {
              if (spistatus & (1<<CHAR_TASK))
              {
-                pos++;
-                data = spidata;
-                if (pos<20)
-                {
-                   lcd_gotoxy(pos,1);
-                   lcd_putc(data);
-                }
-                else
-                {
-                  pos=0;
-                }
+                datastring[pos++] = (uint8_t)spidata;
                 spistatus &= ~(1<<CHAR_TASK);
              }
+             else  if (spistatus & (1<<GOTO_TASK))
+             {
+                data = (uint8_t)spidata;
+                line = data & 0x07;   // 5 bit col, 3 bit line
+                col = (data & 0xF8)>>3;
+                //lcd_gotoxy(col,line);
+                //lcd_gotoxy(10,1);
+                spistatus &= ~(1<<GOTO_TASK);
+             }
+
+             
 
                           //lcd_puthex(spidata);
           }
 
-         else // data
-         {
-            
-         }
          
          /*
          if (pos > 1) // cmd & data
