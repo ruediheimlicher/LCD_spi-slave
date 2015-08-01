@@ -63,6 +63,8 @@ volatile uint8_t line=0;
 volatile uint8_t data=0;
 volatile uint8_t datastring[20]={};
 
+volatile uint8_t gotostring[20]={};
+
 volatile int16_t spidata=0;
 
 volatile uint8_t spistatus=0;
@@ -82,6 +84,13 @@ volatile uint8_t statusflag=0;
 
 volatile uint8_t spi_rxbuffer[8] = {};
 volatile uint8_t	spicount=0;
+volatile uint8_t	packetcount=0;
+
+volatile uint8_t	lastdata=0;
+
+volatile uint16_t	errcount=0;
+
+volatile uint8_t	lcdcol=0; // col auf lcd
 volatile uint8_t	ANZEIGE_LO_counter=0;
 
 int add(char c)
@@ -414,10 +423,11 @@ void main (void)
    lcd_initialize_spi(LCD_FUNCTION_8x2, LCD_CMD_ENTRY_INC, LCD_CMD_ON);
    lcd_puts("Guten Tag\0");
    delay_ms(1000);
+   lcd_clr_line(0);
 
    uint8_t pos=0;
+   uint8_t gotopos=0;
    sei();
-   lcd_gotoxy(0,1);
    
 #pragma mark while
 	while (1)
@@ -455,9 +465,11 @@ void main (void)
       if (spidata >=0)
       {
          OSZI_A_LO;
-         lcd_gotoxy(18,0);
-         lcd_putc(' ');
-         
+         //lcd_gotoxy(18,0);
+         //lcd_putc(' ');
+         spicount+=1;
+         lcd_gotoxy(10,0);
+         lcd_puthex(spicount);
          lcd_gotoxy(19,0);
          lcd_putc('*');
          spi_rxdata = 0;
@@ -467,32 +479,72 @@ void main (void)
          if (spidata == 0x00) // end
          {
             datastring[pos] = '\0';
-            lcd_gotoxy(0,2);
-            lcd_putint(col);
-            lcd_putc(' ');
-            lcd_putint(line);
             //line = 1;
             //col = 2;
 
+            //lcd_gotoxy(col,line);
+            lcd_gotoxy(0,3);
+            //lcd_puts((char*)datastring);
+            char* ptr;
+            uint8_t wert=strtol((char*)datastring,&ptr,16);
+            //lcd_putc(' ');
+            //lcd_puthex(wert);
+            //lcd_putc(' ');
+            lcd_putc(wert);
+
+
+             uint8_t sum = datastring[0]+ datastring[1];
+            if ( !(sum == lastdata))
+            {
+               //lastdata = sum;
+            }
+            else
+            {
+               errcount++;
+            }
+            
+            lastdata = sum;
+            lcd_gotoxy(15,0);
+            lcd_putc('e');
+            lcd_putint(errcount);
+            
+            
+            
+            lcd_gotoxy(4 ,3);
+            //lcd_puts((char*)gotostring);
+            char* gotoptr;
+            uint8_t gotowert=strtol((char*)gotostring,&gotoptr,16);
+            //lcd_putc(' ');
+            //lcd_puthex(gotowert);
+            line = gotowert & 0x07;   // 5 bit col, 3 bit line
+            col = (gotowert & 0xF8)>>3;
+            //lcd_gotoxy(10,1);
+            lcd_puthex(col);
+            //lcd_putc(' ');
+            lcd_puthex(line);
             lcd_gotoxy(col,line);
-            lcd_puts(datastring);
+            lcd_putc('*');
+
+            
+
             
           
          }
          else if (spidata == 0x0D) // neues paket
          {
+            packetcount++;
 //            datastring[pos] = '\0';
-            lcd_gotoxy(0,2);
-            lcd_putint(col);
-            lcd_putc(' ');
-            lcd_putint(line);
-//            lcd_gotoxy(col,line);
+            lcd_gotoxy(0,0);
+            lcd_putint(packetcount);
+ //            lcd_gotoxy(col,line);
  //           lcd_puts(datastring);
             //lcd_putc('*');
             pos=0; // pos im Datenpaket
+            gotopos=0;
             col=0;
             line=0;
             spistatus=0;
+            
             spistatus = 1<<NEW_TASK;
             //lcd_clr_line(1);
          }
@@ -504,7 +556,9 @@ void main (void)
                 
                 switch (cmd)
                 {
-                   case CHAR_TASK: // put c
+                      
+                      
+                   case 0x01: // put char, 2 byte
                    {
                       spistatus |= 1<<CHAR_TASK;
                       par=0; // keine Parameter
@@ -517,7 +571,7 @@ void main (void)
                       
                    } break;
                    
-                   case END_TASK:
+                   case 0x07:
                    {
                       spistatus |= 1<<END_TASK;
                       
@@ -531,36 +585,28 @@ void main (void)
              //lcd_gotoxy(pos++,1);
              //lcd_putc(spidata);
           }
-          else if ((spidata >0x21) && (spidata < 0x5A)) // char
+          else if ((spidata >0x1F) && (spidata < 0x7E)) // char
           {
-             if (spistatus & (1<<CHAR_TASK))
+             if (spistatus & (1<<CHAR_TASK)) // 2 byte (hex-zahl)
              {
-                datastring[pos++] = (uint8_t)spidata;
-                spistatus &= ~(1<<CHAR_TASK);
-               
+                 datastring[pos++] = (uint8_t)spidata;
+                
+                if (pos == 2) // 2 bytes da
+                {
+                   spistatus &= ~(1<<CHAR_TASK);
+                }
+                               
              }
              else  if (spistatus & (1<<GOTO_TASK))
              {
-                
-                lcd_gotoxy(0,3);
-                lcd_putint(spidata);
-                lcd_putc(' ');
-                data = (uint8_t)spidata;
-                lcd_putint(data);
-                //data = 0x21;
-                line = data & 0x07;   // 5 bit col, 3 bit line
-                col = (data & 0xF8)>>3;
-                
-                lcd_putc(' ');
-                lcd_putint(col);
-                lcd_putc(' ');
-                lcd_putint(line);
+                //lcd_gotoxy(0,2);
+                //lcd_puthex((uint8_t)spidata);
+                gotostring[gotopos++] = (uint8_t)spidata;
+                if (gotopos == 2) // 2 bytes da
+                {
+                   spistatus &= ~(1<<GOTO_TASK);
+                }
 
-                //line = 1;
-                //col = 6;
-                //lcd_gotoxy(col,line);
-                //lcd_gotoxy(10,1);
-                spistatus &= ~(1<<GOTO_TASK);
                 
              }
 
@@ -613,14 +659,17 @@ void main (void)
          */
          //lcd_putc(' ');
          //lcd_puthex(isrcontrol);
+         //lcd_gotoxy(19,0);
+         //lcd_putc(' ');
+
          OSZI_A_HI;
       }
       else
       {
-         lcd_gotoxy(18,0);
+         //lcd_gotoxy(18,0);
          //lcd_puthex(0x00);
          //lcd_gotoxy(19,0);
-         lcd_putc('-');
+         //lcd_putc('-');
          
       }
 
