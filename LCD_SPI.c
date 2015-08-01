@@ -61,14 +61,19 @@ volatile uint8_t col=0;
 volatile uint8_t line=0;
 
 volatile uint8_t data=0;
-volatile uint8_t datastring[20]={};
+volatile uint8_t charstring[10]={};
 
-volatile uint8_t gotostring[20]={};
+volatile uint8_t gotostring[10]={};
 
+volatile uint8_t datastring[32]={};
+volatile uint8_t datalen=0;
 volatile int16_t spidata=0;
 
 volatile uint8_t spistatus=0;
 
+volatile uint8_t pos=0;
+volatile uint8_t gotopos=0;
+volatile uint8_t stringpos=0;
 
 void delay_ms(unsigned int ms);
 
@@ -425,8 +430,6 @@ void main (void)
    delay_ms(1000);
    lcd_clr_line(0);
 
-   uint8_t pos=0;
-   uint8_t gotopos=0;
    sei();
    
 #pragma mark while
@@ -478,39 +481,24 @@ void main (void)
          lcd_putc(' ');
          if (spidata == 0x00) // end
          {
-            datastring[pos] = '\0';
+            //charstring[pos] = '\0';
             //line = 1;
             //col = 2;
 
             //lcd_gotoxy(col,line);
             lcd_gotoxy(0,3);
-            //lcd_puts((char*)datastring);
+            //lcd_puts((char*)charstring);
             char* ptr;
-            uint8_t wert=strtol((char*)datastring,&ptr,16);
+            uint8_t wert=strtol((char*)charstring,&ptr,16);
             //lcd_putc(' ');
             //lcd_puthex(wert);
             //lcd_putc(' ');
             lcd_putc(wert);
 
 
-             uint8_t sum = datastring[0]+ datastring[1];
-            if ( !(sum == lastdata))
-            {
-               //lastdata = sum;
-            }
-            else
-            {
-               errcount++;
-            }
-            
-            lastdata = sum;
-            lcd_gotoxy(15,0);
-            lcd_putc('e');
-            lcd_putint(errcount);
             
             
-            
-            lcd_gotoxy(4 ,3);
+            lcd_gotoxy(3 ,3);
             //lcd_puts((char*)gotostring);
             char* gotoptr;
             uint8_t gotowert=strtol((char*)gotostring,&gotoptr,16);
@@ -525,27 +513,46 @@ void main (void)
             lcd_gotoxy(col,line);
             lcd_putc('*');
 
-            
+            uint8_t sum = charstring[0]+ charstring[1];
+            if ( !(sum == lastdata))
+            {
+               //lastdata = sum;
+            }
+            else
+            {
+               errcount++;
+            }
 
+            lastdata = sum;
+            lcd_gotoxy(15,0);
+            lcd_putc('e');
+            lcd_putint(errcount);
+            
+            lcd_gotoxy(8 ,3);
+            lcd_puts((char*)datastring);
+            lcd_putc(' ');
+            //datalen = datastring[0];
+            lcd_puthex(datalen);
             
           
          }
          else if (spidata == 0x0D) // neues paket
          {
             packetcount++;
-//            datastring[pos] = '\0';
+//            charstring[pos] = '\0';
             lcd_gotoxy(0,0);
             lcd_putint(packetcount);
  //            lcd_gotoxy(col,line);
- //           lcd_puts(datastring);
+ //           lcd_puts(charstring);
             //lcd_putc('*');
             pos=0; // pos im Datenpaket
             gotopos=0;
+            stringpos=0;
             col=0;
             line=0;
             spistatus=0;
             
-            spistatus = 1<<NEW_TASK;
+            //spistatus = 1<<NEW_TASK;
             //lcd_clr_line(1);
          }
           else if ((spidata < 0x21) ) // cmd
@@ -571,6 +578,13 @@ void main (void)
                       
                    } break;
                    
+                   case 0x03: // string
+                   {
+                      spistatus |= 1<<STRING_TASK;
+                     
+                      
+                   }break;
+                      
                    case 0x07:
                    {
                       spistatus |= 1<<END_TASK;
@@ -589,7 +603,7 @@ void main (void)
           {
              if (spistatus & (1<<CHAR_TASK)) // 2 byte (hex-zahl)
              {
-                 datastring[pos++] = (uint8_t)spidata;
+                 charstring[pos++] = (uint8_t)spidata;
                 
                 if (pos == 2) // 2 bytes da
                 {
@@ -602,12 +616,45 @@ void main (void)
                 //lcd_gotoxy(0,2);
                 //lcd_puthex((uint8_t)spidata);
                 gotostring[gotopos++] = (uint8_t)spidata;
+                
                 if (gotopos == 2) // 2 bytes da
                 {
                    spistatus &= ~(1<<GOTO_TASK);
                 }
 
                 
+             }
+             else if (spistatus & (1<<STRING_TASK))
+             {
+                
+                if (stringpos == 0)
+                {
+                   //lcd_gotoxy(0,2);
+                   datalen = (uint8_t)spidata-'0';
+                   //lcd_puthex(datalen);
+                   
+                   stringpos++;
+                   //lcd_puthex(stringpos);
+                }
+                else
+                {
+                   //lcd_gotoxy(4+stringpos,1);
+                   //lcd_puthex(datalen);
+                   //lcd_putint1(stringpos);
+                   //lcd_gotoxy(4+stringpos,2);
+                   //lcd_puthex(datalen);
+                   
+                   char c =(uint8_t)spidata;
+                   //lcd_putc(c);
+                   datastring[stringpos-1] = c;
+                   stringpos++;
+                }
+                if (stringpos == datalen+1)
+                {
+                   spistatus &= ~(1<<STRING_TASK);
+                }
+                
+             
              }
 
              
@@ -645,7 +692,7 @@ void main (void)
                   spistatus &= ~(1<<GOTO_TASK);
                   
                   //lcd_gotoxy(col,line+1);
-                 // lcd_puts(datastring);
+                 // lcd_puts(charstring);
                      }
                } break;
                   
