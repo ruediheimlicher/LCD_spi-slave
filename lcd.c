@@ -483,8 +483,8 @@ void lcd_gotoxy(uint8_t x, uint8_t y)
 
 void lcd_spi_gotoxy(uint8_t x, uint8_t y)
 {
-   lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE2+1);
-   return;
+   //lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE2+1);
+   //return;
    switch (y)
    {
       case 0:

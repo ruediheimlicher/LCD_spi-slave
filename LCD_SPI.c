@@ -600,44 +600,42 @@ void main (void)
             //lcd_gotoxy(pos++,1);
             //lcd_putc(spidata);
          }
-         else  if (spistatus & (1<<GOTO_TASK))
-         {
-            //lcd_gotoxy(0,2);
-            //lcd_puthex((uint8_t)spidata);
-            gotostring[gotopos++] = (uint8_t)spidata;
-            
-            if (gotopos == 2) // 2 bytes da
-            {
-               spistatus &= ~(1<<GOTO_TASK);
-               gotostring[gotopos] = '\0';
-               char* gotoptr = {0};
-               uint8_t tempgotowert=strtol((char*)gotostring,&gotoptr,16);
-               //lcd_putc(' ');
-               //lcd_puthex(gotowert);
-               
-               
-               //uint8_t templine = tempgotowert & 0x07;   // 5 bit col, 3 bit line
-               //uint8_t tempcol = (tempgotowert & 0xF8)>>3;
-               line = tempgotowert & 0x07;   // 5 bit col, 3 bit line
-               col = (tempgotowert & 0xF8)>>3;
-               
-               lcd_spi_gotoxy(col,line);
-               //lcd_spi_gotoxy(17,0);
-               //lcd_puthex(col);
-               
-               //lcd_spi_gotoxy(2,2);
-               
-            }
-            
-            
-         }
          else if ((spidata >0x1F) && (spidata < 0x7E)) // char
          {
+            if (spistatus & (1<<GOTO_TASK))
+            {
+               //lcd_gotoxy(0,2);
+               //lcd_puthex((uint8_t)spidata);
+               gotostring[gotopos++] = (uint8_t)spidata;
+               
+               if (gotopos == 2) // 2 bytes da
+               {
+                  spistatus &= ~(1<<GOTO_TASK);
+                  gotostring[gotopos] = '\0';
+                  char* gotoptr = {0};
+                  uint8_t tempgotowert=strtol((char*)gotostring,&gotoptr,16);
+                  //lcd_putc(' ');
+                  //lcd_puthex(gotowert);
+                  
+                  
+                  //uint8_t templine = tempgotowert & 0x07;   // 5 bit col, 3 bit line
+                  //uint8_t tempcol = (tempgotowert & 0xF8)>>3;
+                  line = tempgotowert & 0x07;   // 5 bit col, 3 bit line
+                  col = (tempgotowert & 0xF8)>>3;
+                  
+                  
+                  lcd_spi_gotoxy(col,line);
+                  //lcd_spi_gotoxy(17,0);
+                  //lcd_puthex(col);
+                  
+                  //lcd_spi_gotoxy(2,2);
+                  
+               }
+               
+            }
+
             
-            
-            
-            
-            if (spistatus & (1<<CHAR_TASK)) // 2 byte (hex-zahl)
+            else if (spistatus & (1<<CHAR_TASK)) // 2 byte (hex-zahl)
             {
                charstring[pos++] = (uint8_t)spidata;
                
