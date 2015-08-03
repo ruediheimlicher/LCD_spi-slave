@@ -342,11 +342,16 @@ void lcd_puts(const char *s)
 /* print string on lcd (no auto linefeed) */
 {
     register char c;
-
-    while ( (c = *s++) ) {
+   cli();
+   OSZI_B_LO;
+    while ( (c = *s++) )
+    {
+       OSZI_A_LO;
         lcd_putc(c);
+       OSZI_A_HI;
     }
-
+   OSZI_B_HI;
+   sei();
 }/* lcd_puts */
 
 
@@ -357,11 +362,13 @@ void lcd_puts(const char *s)
 void
 lcd_strobe_E(void)
 {
+   
         /* strobe E signal */
         CMD_PORT |= _BV(LCD_ENABLE_PIN);
         _delay_us(550); 
 	//	lcddelay_ms(100);
         CMD_PORT &= ~_BV(LCD_ENABLE_PIN);
+   
 }
 
 /*
@@ -481,27 +488,25 @@ void lcd_gotoxy(uint8_t x, uint8_t y)
    }//switch
 }/* lcd_gotoxy */
 
-void lcd_spi_gotoxy(uint8_t x, uint8_t y)
+void lcd_spi_gotoxy(char x, char y)
 {
-   //lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE2+1);
-   //return;
-   switch (y)
+   //uint8_t col = x-'0';
+   //uint8_t line = y-'0';
+   uint8_t col = x;
+   uint8_t line = y;
+   switch (line)
    {
       case 0:
-         //lcd_load_byte((1<<LCD_DDRAM)+LCD_START_LINE1+x);
-         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE1+x);
+         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE1+col);
          break;
       case 1:
-         //lcd_load_byte((1<<LCD_DDRAM)+LCD_START_LINE2+x);
-         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE2+x);
+         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE2+col);
          break;
       case 2:
-         //lcd_load_byte((1<<LCD_DDRAM)+LCD_START_LINE3+x);
-         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE3+x);
+         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE3+col);
          break;
       case 3:
-         //lcd_load_byte((1<<LCD_DDRAM)+LCD_START_LINE4+x);
-         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE4+x);
+         lcd_send_spi_cmd((1<<LCD_DDRAM)+LCD_START_LINE4+col);
          break;
          
          
@@ -530,13 +535,13 @@ void lcd_cls(void)
 // Linie Loeschen
 void lcd_clr_line(uint8_t Linie)
 {
-	lcd_gotoxy(0,Linie);
+	lcd_spi_gotoxy(0,Linie);
 	uint8_t i=0;
 	for (i=0;i<LCD_DISP_LENGTH;i++)
 	{
 		lcd_putc(' ');
 	}
-	lcd_gotoxy(0,Linie);
+	lcd_spi_gotoxy(0,Linie);
 	
 }	// Linie Loeschen
 

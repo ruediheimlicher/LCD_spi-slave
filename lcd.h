@@ -110,6 +110,7 @@ void lcd_send_cmd(void);
 void lcd_send_char(void);
 void lcd_send_spi_cmd(uint8_t out_cmd);
 void lcd_send_spi_char(uint8_t out_char);
+void lcd_spi_gotoxy(char x, char y);
 
 void lcd_strobe_E(void);
 void lcd_cursor_home(void);
