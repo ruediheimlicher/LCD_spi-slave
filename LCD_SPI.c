@@ -45,7 +45,6 @@
 
 
 volatile uint8_t inindex=0;
-volatile uint8_t spi_rxdata=0;
 volatile uint8_t isrcontrol=0;
 
 
@@ -392,22 +391,15 @@ void spi_slave_init (void)
    
 }
 
-
 ISR (SPI_STC_vect) // Neue Zahl angekommen // 3 us
 {
    //OSZI_A_LO;
    isrcontrol++;
-   //spi_rxbuffer[inindex] = SPDR;
    add(SPDR);
    
-   //spidata = SPDR;
    SPDR = 0x00; // nichts zu lesen
-   
-   spi_rxdata=1;
    //OSZI_A_HI;
 }
-
-
 
 void main (void) 
 {
@@ -463,6 +455,7 @@ void main (void)
          
       }
       sei();
+      
       spidata = remove();
       
       //lcd_puthex(spidata);
@@ -471,7 +464,6 @@ void main (void)
       {
          //OSZI_A_LO;
          spicount+=1;
-         spi_rxdata = 0;
          
          if ((spidata < 0x21) ) // cmd
          {
@@ -634,6 +626,8 @@ void main (void)
       else
       {
       }
+      
+      
       if (STARTPIN & (1<<START_PIN))
       {
          if (!(statusflag & (1<<WAIT)))
