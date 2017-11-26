@@ -49,7 +49,7 @@ volatile uint8_t isrcontrol=0;
 
 
 // ring buffer
-#define RING_SIZE 80
+#define RING_SIZE 64
 typedef uint8_t ring_pos_t;
 volatile ring_pos_t ring_head;
 volatile ring_pos_t ring_tail;
@@ -99,7 +99,7 @@ volatile uint16_t	errcount=0;
 volatile uint8_t	lcdcol=0; // col auf lcd
 volatile uint8_t	ANZEIGE_LO_counter=0;
 
-int add(char c)
+int add(char c) // char in Ringbuffer
 {
    ring_pos_t next_head = (ring_head + 1) % RING_SIZE;
    if (next_head != ring_tail)
@@ -391,14 +391,14 @@ void spi_slave_init (void)
    
 }
 
-ISR (SPI_STC_vect) // Neue Zahl angekommen // 3 us
+ISR (SPI_STC_vect) // Neue Zahl angekommen // 30 us
 {
-   //OSZI_A_LO;
+   OSZI_A_LO;
    isrcontrol++;
    add(SPDR);
    
    SPDR = 0x00; // nichts zu lesen
-   //OSZI_A_HI;
+   OSZI_A_HI;
 }
 
 void main (void) 
@@ -456,13 +456,14 @@ void main (void)
       }
       sei();
       
-      spidata = remove();
-      
+      //OSZI_B_LO;
+      spidata = remove(); // ein Element im Ring lesen, entfernen
+      //OSZI_B_HI;
       //lcd_puthex(spidata);
       //if (spi_rxdata)
       if (spidata >=0)
       {
-         //OSZI_A_LO;
+         OSZI_B_LO;
          spicount+=1;
          
          if ((spidata < 0x21) ) // cmd
@@ -484,7 +485,7 @@ void main (void)
                   //lcd_putc(' ');
                }break;
 #pragma mark neues Paket
-               case 0x0D: // neues Paket
+               case START: // neues Paket
                {
                   packetcount++;
                   pos=0; // pos im Datenpaket
@@ -621,7 +622,7 @@ void main (void)
                }
             }
          }
-         //OSZI_A_HI;
+         OSZI_B_HI;
       }
       else
       {

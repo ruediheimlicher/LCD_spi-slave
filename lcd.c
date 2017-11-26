@@ -343,14 +343,14 @@ void lcd_puts(const char *s)
 {
     register char c;
    cli();
-   OSZI_B_LO;
+   //OSZI_B_LO;
     while ( (c = *s++) )
     {
-       OSZI_A_LO;
+       //OSZI_A_LO;
         lcd_putc(c);
-       OSZI_A_HI;
+       //OSZI_A_HI;
     }
-   OSZI_B_HI;
+   //OSZI_B_HI;
    sei();
 }/* lcd_puts */
 
