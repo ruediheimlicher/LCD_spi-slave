@@ -49,7 +49,7 @@ volatile uint8_t isrcontrol=0;
 
 
 // ring buffer
-#define RING_SIZE 64
+#define RING_SIZE 128
 typedef uint8_t ring_pos_t;
 volatile ring_pos_t ring_head;
 volatile ring_pos_t ring_tail;
@@ -66,7 +66,7 @@ volatile uint8_t charstring[32]={};
 
 volatile uint8_t gotostring[10]={};
 
-volatile uint8_t datastring[32]={};
+volatile uint8_t datastring[64]={};
 volatile uint8_t datalen=0;
 volatile int16_t spidata=0;
 
@@ -89,6 +89,9 @@ volatile uint16_t	timeoutcounterH=0; // Zeit_H, bis die Beleuchtung ausgeschalte
 volatile uint8_t statusflag=0;
 
 volatile uint8_t spi_rxbuffer[8] = {};
+
+volatile uint8_t   stringlen=0;
+
 volatile uint8_t	spicount=0;
 volatile uint8_t	packetcount=0;
 
@@ -397,7 +400,7 @@ ISR (SPI_STC_vect) // Neue Zahl angekommen // 30 us
    isrcontrol++;
    add(SPDR);
    
-   SPDR = 0x00; // nichts zu lesen
+   SPDR = ring_head; // nichts zu lesen
    OSZI_A_HI;
 }
 
@@ -434,7 +437,7 @@ void main (void)
       loopcount0++;
       // if (TCNT1 & 0x2000)         // Check the MSB of the timer
       //    OSZI_A_TOGG;          // Set PC0
-      cli();
+      //cli();
       if (loopcount0>=LOOPSTEP)
       {
          
@@ -454,7 +457,7 @@ void main (void)
          }
          
       }
-      sei();
+      //sei();
       
       //OSZI_B_LO;
       spidata = remove(); // ein Element im Ring lesen, entfernen
@@ -463,7 +466,7 @@ void main (void)
       //if (spi_rxdata)
       if (spidata >=0)
       {
-         OSZI_B_LO;
+         //OSZI_B_LO;
          spicount+=1;
          
          if ((spidata < 0x21) ) // cmd
@@ -531,9 +534,15 @@ void main (void)
                   
                }break;
                   
+               case CLEAR_LCD:
+               {
+                  lcd_cls();
+               }break;
                default:
                   break;
             }// switch
+            
+            
          }
          else if ((spidata >0x1F) && (spidata < 0x7E)) // char
          {
@@ -615,14 +624,19 @@ void main (void)
                if (stringpos == datalen+1)
                {
                   datastring[stringpos-1] = '\0';
-                  spistatus &= ~(1<<STRING_TASK);
+                  
+                  //lcd_cls();
+                  //OSZI_B_LO;
                   
                   lcd_puts((char*)datastring);
-                  
+                  //lcd_puthex(datalen);
+                  //OSZI_B_HI;
+                  spistatus &= ~(1<<STRING_TASK);
+                  //lcd_putc('*');
                }
             }
          }
-         OSZI_B_HI;
+         //OSZI_B_HI;
       }
       else
       {

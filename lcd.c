@@ -342,16 +342,16 @@ void lcd_puts(const char *s)
 /* print string on lcd (no auto linefeed) */
 {
     register char c;
-   cli();
+   //cli();
    //OSZI_B_LO;
     while ( (c = *s++) )
     {
-       //OSZI_A_LO;
+       OSZI_B_LO;
         lcd_putc(c);
-       //OSZI_A_HI;
+       OSZI_B_HI;
     }
    //OSZI_B_HI;
-   sei();
+   //sei();
 }/* lcd_puts */
 
 
@@ -463,7 +463,7 @@ lcd_load_byte(uint8_t out_byte)
    }
 }
 
-void lcd_gotoxy(uint8_t x, uint8_t y)
+void lcd_gotoxy(uint8_t x, uint8_t y) // mit SR
 {
    switch (y)
    {
