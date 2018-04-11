@@ -266,7 +266,7 @@ lcd_send_char(void)
 void
 lcd_send_spi_char(uint8_t out_char)
 {
-   /* Data in '164 is a character, so RS must be high (1) */
+   /* Data is a character, so RS must be high (1) */
    CMD_PORT |= (1<<LCD_RSDS_PIN);
    _delay_us(10);
    LCD_PORT = out_char;
@@ -277,8 +277,6 @@ lcd_send_spi_char(uint8_t out_char)
 }
 
 /*
- * Loads the byte into the shift register and then sends it to the LCD as a char
- * Parameters:
  *      c               The byte (character) to display
 */
 

@@ -51,8 +51,8 @@ volatile uint8_t isrcontrol=0;
 // ring buffer
 #define RING_SIZE 128
 typedef uint8_t ring_pos_t;
-volatile ring_pos_t ring_head;
-volatile ring_pos_t ring_tail;
+volatile ring_pos_t ring_head=0;
+volatile ring_pos_t ring_tail=0;
 volatile char ring_data[RING_SIZE];
 
 
@@ -105,7 +105,7 @@ volatile uint8_t	ANZEIGE_LO_counter=0;
 int add(char c) // char in Ringbuffer
 {
    ring_pos_t next_head = (ring_head + 1) % RING_SIZE;
-   if (next_head != ring_tail)
+   if (next_head != ring_tail) 
    {
       /* there is room */
       ring_data[ring_head] = c;
@@ -481,8 +481,8 @@ void main (void)
                   //lcd_gotoxy(col,line);
                   //lcd_gotoxy(0,3);
                   //lcd_puts((char*)charstring);
-                  char* ptr;
-                  uint8_t wert=strtol((char*)charstring,&ptr,16);
+                  //char* ptr;
+                  //uint8_t wert=strtol((char*)charstring,&ptr,16);
                   //lcd_putc(' ');
                   //lcd_puthex(wert);
                   //lcd_putc(' ');
@@ -498,46 +498,39 @@ void main (void)
                   strcpy((void*)gotostring, "");
                   strcpy((void*)charstring, "");
                   strcpy((void*)datastring, "");
-                  
+               
                }break;
                   
                case 0x01: // put char, 2 byte
                {
-                  spistatus |= 1<<CHAR_TASK;
-                  
+                  spistatus |= 1<<CHAR_TASK;                  
                }break;
                   
                case 0x02: // goto xy
                {
                   spistatus |= 1<<GOTO_TASK;
-                  
-                  
                } break;
                   
                case 0x03: // string
                {
                   spistatus |= 1<<STRING_TASK;
-                  
-                  
                }break;
                   
                case 0x06:
                {
                   spistatus |= 1<<END_TASK;
-                  
                }break;
                   
                case 0x07:
                {
-                  
                   spistatus |= 1<<NEW_TASK;
-                  
                }break;
                   
                case CLEAR_LCD:
                {
                   lcd_cls();
                }break;
+                  
                default:
                   break;
             }// switch
@@ -609,27 +602,28 @@ void main (void)
 #pragma mark string
             else if (spistatus & (1<<STRING_TASK))
             {
-               if (stringpos == 0)
+               if (stringpos == 0) // erstes Zeichen, len als char
                {
-                  datalen = (uint8_t)spidata-'0';
+                  datalen = (uint8_t)spidata-'0';                  
+                  lcd_puthex(datalen);
+                  lcd_putc('+');
                   stringpos++;
                }
                else
                {
                   char c =(uint8_t)spidata;
-                  
                   datastring[stringpos-1] = c;
                   stringpos++;
                }
                if (stringpos == datalen+1)
                {
-                  datastring[stringpos-1] = '\0';
-                  
+                  datastring[stringpos-1] = '\0';                  
                   //lcd_cls();
                   //OSZI_B_LO;
                   
                   lcd_puts((char*)datastring);
-                  //lcd_puthex(datalen);
+                  lcd_putc(' ');
+                  lcd_puthex(datalen);
                   //OSZI_B_HI;
                   spistatus &= ~(1<<STRING_TASK);
                   //lcd_putc('*');
