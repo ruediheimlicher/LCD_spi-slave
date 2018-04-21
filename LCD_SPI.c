@@ -605,8 +605,8 @@ void main (void)
                if (stringpos == 0) // erstes Zeichen, len als char
                {
                   datalen = (uint8_t)spidata-'0';                  
-                  lcd_puthex(datalen);
-                  lcd_putc('+');
+                  //lcd_puthex(datalen);
+                  //lcd_putc('+');
                   stringpos++;
                }
                else
@@ -622,8 +622,8 @@ void main (void)
                   //OSZI_B_LO;
                   
                   lcd_puts((char*)datastring);
-                  lcd_putc(' ');
-                  lcd_puthex(datalen);
+                  //lcd_putc(' ');
+                  //lcd_puthex(datalen);
                   //OSZI_B_HI;
                   spistatus &= ~(1<<STRING_TASK);
                   //lcd_putc('*');
